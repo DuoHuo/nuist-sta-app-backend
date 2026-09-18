@@ -1,2 +1,3 @@
 # nuist-sta-app-backend
- backend repo of nuist-sta-app
+---
+虽然还不知道后端该写啥，但是得有个仓库
