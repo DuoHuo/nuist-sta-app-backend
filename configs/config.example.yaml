@@ -1,0 +1,33 @@
+server:
+  addr: ":8080"            # 监听地址
+  base_url: ""             # 对外基础 URL（生成绝对链接时使用，可留空）
+  collect_token: ""        # 写接口共享令牌；留空表示不校验（生产建议设置）
+  cors_origins: []         # 空 = 允许所有来源（App 端无 Origin 概念）
+
+models:
+  storage_dir: data/models  # 只增版本文件；环境变量 CAMPUS_MODEL_STORAGE_DIR 可覆盖
+
+photos:
+  storage_dir: data/photos  # 实拍图片文件（文件名=内容哈希）；环境变量 CAMPUS_PHOTO_STORAGE_DIR 可覆盖
+
+database:
+  dsn: postgres://campus:campus@localhost:5432/campus?sslmode=disable
+  max_conns: 8
+
+map:
+  # 矢量瓦片地址（Martin）。{z}/{x}/{y} 由 MapLibre 替换。
+  tile_url: http://localhost:3000/campus/{z}/{x}/{y}
+  # 样式地址；也可以由 App 内置样式 JSON + tile_url 组合，二者取其一
+  style_url: ""
+  glyphs_url: ""           # 字形服务地址（启用文字标注时需要）
+  sprites_url: ""
+  # 校园范围 [minLon, minLat, maxLon, maxLat]，供 App 初始化视野与限制平移
+  # 实测自 OSM 校园边界 relation/13070911（见 data/osm/campus-boundary.geojson）
+  bounds: [118.6910, 32.1956, 118.7229, 32.2099]
+  attribution: "© OpenStreetMap contributors"
+
+locate:
+  k: 4                     # WKNN 近邻数
+  min_matched_aps: 2       # 至少命中的 AP 数，低于则判定无法定位
+  missing_penalty_db: 12   # 指纹/观测单边缺失 AP 时的 RSSI 差惩罚
+  max_snap_m: 150          # 坐标起点/终点吸附到路网的最大距离（米）

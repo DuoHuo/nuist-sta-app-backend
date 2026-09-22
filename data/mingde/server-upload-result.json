@@ -1,0 +1,55 @@
+{
+  "base_url": "http://127.0.0.1:12345",
+  "building_id": "OSM-Way862952692",
+  "version": "4af7c02f97d36a5f55c78db167f2384f",
+  "verified_files": [
+    {
+      "file": "mingde.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/building.glb",
+      "sha256": "9d90046745473519c8605bb14eb4551503e0aa698e29ed1ea8602ffa2f122a3d",
+      "bytes": 311924
+    },
+    {
+      "file": "mingde-1F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_0.glb",
+      "sha256": "2dbd85a4c6227c6fe96a0b755c436ca2baa47de632260f4fb905d2afa79bbc16",
+      "bytes": 114252
+    },
+    {
+      "file": "mingde-2F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_1.glb",
+      "sha256": "e93904cf7f743ec1be326f9735029b21c3d3a318702f56b088785691e9d80f42",
+      "bytes": 111492
+    },
+    {
+      "file": "mingde-3F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_2.glb",
+      "sha256": "273b7eae423ed3eb816b2783cfc5eb9e86dfd8c77fae2d63f4f3e46207960165",
+      "bytes": 111468
+    },
+    {
+      "file": "mingde-4F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_3.glb",
+      "sha256": "6d1a67775f9eb6203af4921ef2ab8a2bdf57d3cec35b0af60624b5923ef53511",
+      "bytes": 111468
+    },
+    {
+      "file": "mingde-5F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_4.glb",
+      "sha256": "877331872af7e8e09dee42ca626c1deee38de1dec5f7d3846daf66619893a8e3",
+      "bytes": 111468
+    },
+    {
+      "file": "mingde-6F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_5.glb",
+      "sha256": "2dce4044e417790d3760464b13b93cb3135b3c57b0dfd3838ab89edd004417d8",
+      "bytes": 110796
+    },
+    {
+      "file": "mingde-7F.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/4af7c02f97d36a5f55c78db167f2384f/files/floor_6.glb",
+      "sha256": "367f5f08aeb96d20377d3f42c6725b01b8071c16a9531dede37e6e7b0293b786",
+      "bytes": 39148
+    }
+  ]
+}

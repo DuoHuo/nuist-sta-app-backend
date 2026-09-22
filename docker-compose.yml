@@ -1,0 +1,54 @@
+services:
+  db:
+    build: ./deployments/postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: campus
+      POSTGRES_USER: campus
+      POSTGRES_PASSWORD: campus # 部署时必须修改，见 docs/deploy.md 安全清单
+    ports:
+      - "127.0.0.1:5432:5432" # 只绑定本机回环；外部不可直连
+    volumes:
+      - campus-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campus -d campus"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile
+    restart: unless-stopped
+    # 首次启动自动建表；正式部署不要加 -seed-demo。
+    # 注意：镜像 ENTRYPOINT 已是 /api，command 里不要再写 "/api"，
+    # 否则它会成为第一个非 flag 参数，flag 解析到此停止、后续参数全部失效。
+    command: ["-migrations-path", "/migrations", "-auto-migrate"]
+    environment:
+      CAMPUS_DATABASE_DSN: postgres://campus:campus@db:5432/campus?sslmode=disable
+      # 瓦片/样式统一走 api 同源代理 /martin/*：手机网络普遍放行 api 端口，
+      # 而 martin 独立端口常被校园/家宽防火墙拦截（真机实测 ERR_CONNECTION_RESET）。
+      CAMPUS_MAP_TILE_URL: http://202.195.237.186:12345/martin/campus/{z}/{x}/{y}
+      CAMPUS_MAP_STYLE_URL: http://202.195.237.186:12345/martin/styles/campus
+      CAMPUS_MARTIN_UPSTREAM: http://martin:3000 # 管理台底图走 api 同源代理 /martin/*
+    ports:
+      - "12345:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  martin:
+    image: ghcr.io/maplibre/martin:latest
+    restart: unless-stopped
+    # 发布 /data 下全部 mbtiles + 样式文件（1.x 配置格式多变，不走 config）。
+    # 样式瓦片源用相对路径 ../../campus：martin 无论从哪个 host:端口被访问都自动指向自身。
+    command: ["/data", "--style", "/etc/martin/campus.json"]
+    volumes:
+      - ./configs/style.osm-bright.json:/etc/martin/campus.json:ro
+      - ./data/tiles:/data:ro
+    ports:
+      - "30000:3000"
+
+volumes:
+  campus-db:

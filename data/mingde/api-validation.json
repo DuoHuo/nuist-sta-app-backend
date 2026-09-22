@@ -1,0 +1,101 @@
+{
+  "base_url": "http://202.195.237.186:12345",
+  "floor_counts": [
+    {
+      "floor": "1F",
+      "features": 52,
+      "rooms": 9
+    },
+    {
+      "floor": "2F",
+      "features": 54,
+      "rooms": 10
+    },
+    {
+      "floor": "3F",
+      "features": 54,
+      "rooms": 10
+    },
+    {
+      "floor": "4F",
+      "features": 54,
+      "rooms": 10
+    },
+    {
+      "floor": "5F",
+      "features": 54,
+      "rooms": 10
+    },
+    {
+      "floor": "6F",
+      "features": 52,
+      "rooms": 9
+    },
+    {
+      "floor": "7F",
+      "features": 11,
+      "rooms": 2
+    }
+  ],
+  "rooms": 60,
+  "routes": [
+    {
+      "name": "same_floor",
+      "length_m": 40.1,
+      "floor_changes": 0,
+      "steps": [
+        "进入明德楼（1F），步行 40 米",
+        "到达目的地"
+      ]
+    },
+    {
+      "name": "first_to_seventh",
+      "length_m": 142.5,
+      "floor_changes": 6,
+      "steps": [
+        "进入明德楼（1F），步行 73 米",
+        "经楼梯从 1F 前往 2F",
+        "经楼梯从 2F 前往 3F",
+        "经楼梯从 3F 前往 4F",
+        "经楼梯从 4F 前往 5F",
+        "经楼梯从 5F 前往 6F",
+        "经楼梯从 6F 前往 7F",
+        "进入明德楼（7F），步行 5 米",
+        "到达目的地"
+      ]
+    },
+    {
+      "name": "seventh_to_first",
+      "length_m": 145.3,
+      "floor_changes": 6,
+      "steps": [
+        "进入明德楼（7F），步行 8 米",
+        "经楼梯从 7F 前往 6F",
+        "经楼梯从 6F 前往 5F",
+        "经楼梯从 5F 前往 4F",
+        "经楼梯从 4F 前往 3F",
+        "经楼梯从 3F 前往 2F",
+        "经楼梯从 2F 前往 1F",
+        "进入明德楼（1F），步行 73 米",
+        "到达目的地"
+      ]
+    },
+    {
+      "name": "outdoor_to_seventh",
+      "length_m": 156.9,
+      "floor_changes": 6,
+      "steps": [
+        "进入明德楼（1F），步行 87 米",
+        "经楼梯从 1F 前往 2F",
+        "经楼梯从 2F 前往 3F",
+        "经楼梯从 3F 前往 4F",
+        "经楼梯从 4F 前往 5F",
+        "经楼梯从 5F 前往 6F",
+        "经楼梯从 6F 前往 7F",
+        "进入明德楼（7F），步行 5 米",
+        "到达目的地"
+      ]
+    }
+  ],
+  "accessible_cross_floor_rejected": true
+}

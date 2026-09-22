@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "name": "campus-demo",
+  "sources": {
+    "campus": {
+      "type": "vector",
+      "url": "http://202.195.237.186:30000/campus"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#f2efe9" } },
+    {
+      "id": "water", "type": "fill", "source": "campus", "source-layer": "water",
+      "paint": { "fill-color": "#a0c8f0" }
+    },
+    {
+      "id": "road-minor", "type": "line", "source": "campus", "source-layer": "transportation",
+      "filter": ["all", ["!", ["has", "brunnel"]]],
+      "paint": { "line-color": "#ffffff", "line-width": 1.5 }
+    },
+    {
+      "id": "building-extrusion", "type": "fill-extrusion", "source": "campus", "source-layer": "building",
+      "paint": {
+        "fill-extrusion-color": "#d9d0c7",
+        "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0]
+      }
+    }
+  ]
+}

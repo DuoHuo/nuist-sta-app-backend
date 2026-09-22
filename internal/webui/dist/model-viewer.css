@@ -1,0 +1,47 @@
+.model-viewer { overflow: hidden; }
+.model-viewer [hidden] { display: none !important; }
+.viewer-shell { height: 100vh; height: 100dvh; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); background: var(--bg); }
+.viewer-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px max(20px, env(safe-area-inset-right)) 12px max(20px, env(safe-area-inset-left)); background: var(--card); border-bottom: 1px solid var(--border); }
+.viewer-heading { min-width: 0; }
+.viewer-heading h1 { margin: 2px 0 4px; color: var(--fg-strong); font-size: 20px; overflow-wrap: anywhere; }
+.viewer-heading p { margin: 0; font-size: 12px; color: var(--muted-fg); overflow-wrap: anywhere; }
+.model-viewer .btn { min-width: 44px; min-height: 44px; flex-shrink: 0; }
+.model-viewer .btn:active { background: var(--border); color: var(--fg-strong); }
+.floor-nav { display: flex; flex-shrink: 0; gap: 8px; overflow-x: auto; padding: 10px max(20px, env(safe-area-inset-right)) 10px max(20px, env(safe-area-inset-left)); background: var(--card); border-bottom: 1px solid var(--border); }
+.floor-nav .btn { white-space: nowrap; }
+.floor-nav [aria-pressed=true] { color: var(--on-primary); background: var(--primary); border-color: var(--primary); }
+.viewer-viewport { position: relative; flex: 1; min-height: 120px; overflow: hidden; background: #EDF2F9; }
+.viewer-viewport canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.viewer-load { position: absolute; z-index: 2; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100% - 32px)); max-height: calc(100% - 16px); overflow: auto; padding: 24px; text-align: center; }
+.viewer-load .spinner { display: inline-block; width: 24px; height: 24px; }
+.viewer-load h2 { margin: 10px 0 6px; font-size: 17px; color: var(--fg-strong); }
+.viewer-load p { margin: 0 0 12px; color: var(--muted-fg); font-size: 13px; overflow-wrap: anywhere; }
+.viewer-load progress { width: 100%; accent-color: var(--primary); }
+.viewer-tools { position: absolute; bottom: 16px; right: max(16px, env(safe-area-inset-right)); display: flex; gap: 8px; padding: 6px; border-radius: 8px; background: var(--card); box-shadow: var(--shadow); max-width: calc(100% - 24px); overflow-x: auto; }
+.viewer-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-shrink: 0; background: var(--card); border-top: 1px solid var(--border); padding: 12px max(20px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+.room-summary { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.viewer-eyebrow { color: var(--muted-fg); font-size: 12px; }
+#room-name { font-size: 16px; color: var(--fg-strong); }
+#room-detail { color: var(--muted-fg); font-size: 12px; }
+.room-picker { display: flex; align-items: center; gap: 8px; max-width: 46%; }
+.room-picker label { font-size: 12px; white-space: nowrap; color: var(--muted-fg); }
+.room-picker select { min-height: 44px; width: 220px; max-width: 100%; min-width: 0; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card); padding: 8px; }
+.viewer-noscript { position: fixed; inset: 40% 16px auto; padding: 24px; background: var(--card); text-align: center; }
+@media (max-width: 540px) {
+  .viewer-header { padding: 10px 12px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .viewer-heading h1 { font-size: 17px; }
+  .floor-nav { padding: 8px 12px; }
+  .viewer-tools { bottom: 12px; right: 12px; gap: 8px; }
+  .viewer-tools .btn { padding: 0 10px; }
+  .viewer-footer { gap: 8px; padding-left: 12px; padding-right: 12px; }
+  .room-picker { flex-direction: column; align-items: flex-start; gap: 2px; max-width: 42%; }
+  .room-picker select { width: 155px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .viewer-header { padding-top: 4px; padding-bottom: 4px; }
+  .viewer-heading > p:first-child { display: none; }
+  .viewer-heading h1 { font-size: 16px; margin: 0; }
+  .floor-nav { padding-top: 4px; padding-bottom: 4px; }
+  .viewer-footer { padding-top: 4px; padding-bottom: max(4px, env(safe-area-inset-bottom)); }
+  .viewer-eyebrow { display: none; }
+}

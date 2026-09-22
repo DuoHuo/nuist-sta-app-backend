@@ -1,0 +1,29 @@
+# Martin 矢量瓦片服务配置（Martin 1.x 配置格式）
+# 文档: https://maplibre.org/martin/
+#
+# 约定：tilemaker 生成好的矢量瓦片放在 ./data/tiles/，
+# docker compose 挂载到容器 /data；样式 configs/style.demo.json 挂载后
+# 由 /styles/campus 下发（martin 会把样式里名为 campus 的源指向本服务瓦片）。
+
+tiles:
+  paths:
+    - /data
+
+styles:
+  campus:
+    style: /etc/martin/style.demo.json
+    sources:
+      campus: campus
+
+# 规模扩大后，可以把业务空间数据改为 PostGIS 直发（省去导出步骤）：
+# postgres:
+#   connection_string: postgres://campus:campus@db:5432/campus?sslmode=disable
+#   auto_publish: true
+#   # 只发布指定表：
+#   tables:
+#     indoor_rooms:
+#       schema: public
+#       table: indoor_features
+#       geometry_column: geom
+#       srid: 4326
+#       bounds: [118.71, 32.199, 118.725, 32.213]

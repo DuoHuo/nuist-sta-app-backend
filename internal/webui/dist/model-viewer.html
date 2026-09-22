@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>建筑三维模型 · 校园地图</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="model-viewer.css">
+</head>
+<body class="model-viewer">
+<main class="viewer-shell">
+  <header class="viewer-header">
+    <div class="viewer-heading"><p>校园建筑 · 三维空间</p><h1 id="building-title">建筑模型</h1><p id="model-meta">正在连接模型服务…</p><p id="model-note" hidden></p></div>
+    <button type="button" class="btn" id="fullscreen">全屏</button>
+  </header>
+  <nav id="floor-nav" class="floor-nav" aria-label="选择楼层"></nav>
+  <section id="viewport" class="viewer-viewport" aria-label="模型查看区域" aria-busy="true">
+    <div id="load-panel" class="viewer-load card" role="status" aria-live="polite">
+      <span id="load-spinner" class="spinner" aria-hidden="true"></span>
+      <h2 id="load-title">正在加载模型</h2><p id="load-message">读取建筑信息…</p>
+      <progress id="load-progress" max="100" aria-label="模型加载进度"></progress>
+      <button id="retry" type="button" class="btn btn-primary" hidden>重新加载</button>
+    </div>
+    <div class="viewer-tools" role="group" aria-label="模型视角控制">
+      <button class="btn" type="button" id="rotate-left" aria-label="向左旋转模型" title="向左旋转">左转</button>
+      <button class="btn" type="button" id="rotate-right" aria-label="向右旋转模型" title="向右旋转">右转</button>
+      <button class="btn" type="button" id="zoom-in" aria-label="放大模型" title="放大">＋</button>
+      <button class="btn" type="button" id="zoom-out" aria-label="缩小模型" title="缩小">−</button>
+      <button class="btn" type="button" id="reset">复位</button>
+    </div>
+  </section>
+  <footer class="viewer-footer">
+    <div class="room-summary" aria-live="polite"><span class="viewer-eyebrow">选中房间</span><strong id="room-name">点击模型中的房间</strong><span id="room-detail">拖动旋转 · 双指或滚轮缩放</span></div>
+    <div class="room-picker"><label for="room-select">房间列表</label><select id="room-select"><option value="">请先加载模型</option></select></div>
+  </footer>
+</main>
+<noscript><p class="viewer-noscript">请启用 JavaScript 以查看建筑模型。</p></noscript>
+<script src="model-viewer-bootstrap.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "building-local-meters-y-up",
+  "origin": {
+    "longitude": 118.712935,
+    "latitude": 32.2070539
+  },
+  "rotation_deg": -9.3,
+  "building_id": "OSM-Way862952692",
+  "name": "明德楼",
+  "source": "mingde-plans-v1",
+  "estimated": true,
+  "notes": "消防图比例复建，非测绘；层高3.6m、墙高2.8m。局部x沿楼栋向东，y向上，z沿图向南。卫生间性别、无障碍及七层西门外区域未核实。",
+  "floors": [
+    {
+      "level_index": 0,
+      "display_name": "1F",
+      "elevation_m": 0.0,
+      "node_name": "floor_0",
+      "file": "mingde-1F.glb",
+      "source_photo": "cf64b0a1386b71d25a582e06ea3a5706.jpg"
+    },
+    {
+      "level_index": 1,
+      "display_name": "2F",
+      "elevation_m": 3.6,
+      "node_name": "floor_1",
+      "file": "mingde-2F.glb",
+      "source_photo": "ea1f696a5400e183bfbc393c3ce34927.jpg"
+    },
+    {
+      "level_index": 2,
+      "display_name": "3F",
+      "elevation_m": 7.2,
+      "node_name": "floor_2",
+      "file": "mingde-3F.glb",
+      "source_photo": "65dd1f5562417c9525f04b9dd09804af.jpg"
+    },
+    {
+      "level_index": 3,
+      "display_name": "4F",
+      "elevation_m": 10.8,
+      "node_name": "floor_3",
+      "file": "mingde-4F.glb",
+      "source_photo": "032c60e018513d31d0c4ca995825906f.jpg"
+    },
+    {
+      "level_index": 4,
+      "display_name": "5F",
+      "elevation_m": 14.4,
+      "node_name": "floor_4",
+      "file": "mingde-5F.glb",
+      "source_photo": "13ffde6cdabb73178b67238d49246370.jpg"
+    },
+    {
+      "level_index": 5,
+      "display_name": "6F",
+      "elevation_m": 18.0,
+      "node_name": "floor_5",
+      "file": "mingde-6F.glb",
+      "source_photo": "05fb11495cbb866ca7ae22974424d658.jpg"
+    },
+    {
+      "level_index": 6,
+      "display_name": "7F",
+      "elevation_m": 21.6,
+      "node_name": "floor_6",
+      "file": "mingde-7F.glb",
+      "source_photo": "22349e8584ade738f4fbc6532126cfe3.jpg"
+    }
+  ]
+}

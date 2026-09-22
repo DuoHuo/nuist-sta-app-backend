@@ -1,0 +1,10 @@
+/bin/
+/dist/
+*.exe
+*.out
+.env
+data/tiles/*.mbtiles
+tmp/
+data/osm/import.sql
+__pycache__/
+*.pyc
