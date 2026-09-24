@@ -18,8 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'data' / 'mingde'
 BUILDING = 'OSM-Way862952692'
 SOURCE = 'mingde-plans-v1'
-ORIGIN = (118.712935, 32.2070539)
-ANGLE = math.radians(9.3)
+# Pose fitted to the OSM outline (way/862952692) by scripts/align_mingde.py.
+ORIGIN = (118.71294883038847, 32.20703416673561)
+ANGLE = math.radians(11.266947222244033)
 HEIGHT = 3.6
 COLORS = {'room': [181, 211, 219, 255], 'corridor': [235, 224, 201, 255],
           'toilet': [151, 200, 189, 255], 'stair': [219, 176, 112, 255],
@@ -290,7 +291,7 @@ def main():
     report=validate(floors)
     full=trimesh.Scene(base_frame='world')
     manifest={'schema_version':1,'coordinate_system':'building-local-meters-y-up',
-              'origin':{'longitude':ORIGIN[0],'latitude':ORIGIN[1]},'rotation_deg':-9.3,
+              'origin':{'longitude':ORIGIN[0],'latitude':ORIGIN[1]},'rotation_deg':-math.degrees(ANGLE),
               'building_id':BUILDING,'name':'明德楼','source':SOURCE,'estimated':True,
               'notes':'消防图比例复建，非测绘；层高3.6m、墙高2.8m。局部x沿楼栋向东，y向上，z沿图向南。卫生间性别、无障碍及七层西门外区域未核实。',
               'floors':[]}

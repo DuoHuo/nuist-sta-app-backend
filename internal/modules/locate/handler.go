@@ -12,6 +12,7 @@ import (
 
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/config"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/httpx"
+	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/admintoken"
 )
 
 var bssidRe = regexp.MustCompile(`^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$`)
@@ -23,22 +24,9 @@ type Handler struct {
 
 func Register(rg *gin.RouterGroup, cfg *config.Config, pool *pgxpool.Pool) {
 	h := &Handler{repo: NewRepo(pool), cfg: cfg}
-	rg.POST("/fingerprints", h.requireToken, h.uploadFingerprint)
+	rg.POST("/fingerprints", admintoken.FromSpec(cfg.Server.CollectToken).Middleware(), h.uploadFingerprint)
 	rg.GET("/fingerprints", h.listFingerprints)
 	rg.POST("/locate/wifi", h.locateWifi)
-}
-
-// requireToken：配置了 collect_token 时，写接口必须携带 X-Collect-Token。
-func (h *Handler) requireToken(c *gin.Context) {
-	if h.cfg.Server.CollectToken == "" {
-		c.Next()
-		return
-	}
-	if c.GetHeader("X-Collect-Token") != h.cfg.Server.CollectToken {
-		httpx.Err(c, http.StatusUnauthorized, "unauthorized", "缺少或错误的 X-Collect-Token")
-		return
-	}
-	c.Next()
 }
 
 type obsJSON struct {

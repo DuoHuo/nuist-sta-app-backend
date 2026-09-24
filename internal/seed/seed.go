@@ -1,5 +1,6 @@
 // Package seed 写入演示数据：一栋示范教学楼（两个楼层）、室内外连通的
-// 导航路网、若干 POI 与 Wi-Fi 指纹样本。幂等，可重复执行。
+// 导航路网、若干 POI、Wi-Fi 指纹样本，以及一条校园公交环线（含一辆车与位置）。
+// 幂等，可重复执行。
 //
 // 坐标为本地米制（锚点见 campus_cs），演示用，正式数据由 QGIS / OSM 流程生产。
 package seed
@@ -8,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -15,35 +17,39 @@ import (
 )
 
 const (
-	demoBuildingID = "B-DEMO-01"
+	demoBuildingID   = "B-DEMO-01"
 	demoBuildingName = "示范教学楼（演示数据）"
-	originLon = 118.7170
-	originLat = 32.2060
+	demoBusRouteCode = "DEMO-1"
+	demoBusVehicleID = "BUS-DEMO-01"
+	originLon        = 118.7170
+	originLat        = 32.2060
 )
 
 type Summary struct {
-	BuildingID    string
-	FloorIDs      map[int]int64 // level_index -> floor_id
-	NodeCount     int
-	EdgeCount     int
-	POICount      int
-	FPSessions    int
+	BuildingID   string
+	FloorIDs     map[int]int64 // level_index -> floor_id
+	NodeCount    int
+	EdgeCount    int
+	POICount     int
+	FPSessions   int
+	BusRouteID   int64
+	BusStopCount int
 }
 
 type nodeDef struct {
-	key       string
-	building  bool   // 属于演示建筑
-	floor     int    // level_index，室外节点忽略
-	x, y      float64
-	kind      string
+	key      string
+	building bool // 属于演示建筑
+	floor    int  // level_index，室外节点忽略
+	x, y     float64
+	kind     string
 }
 
 type edgeDef struct {
-	from, to string
-	kind     string
-	name     string
-	accessible bool
-	floorChange bool
+	from, to     string
+	kind         string
+	name         string
+	accessible   bool
+	floorChange  bool
 	costOverride float64 // >0 时使用（换层边）
 }
 
@@ -168,6 +174,14 @@ func Run(ctx context.Context, pool *pgxpool.Pool) (*Summary, error) {
 	if _, err := tx.Exec(ctx, `DELETE FROM buildings WHERE building_id = $1`, demoBuildingID); err != nil {
 		return nil, err
 	}
+	// 公交：车辆先删（位置随车辆级联），再删线路（站序随线路级联）
+	if _, err := tx.Exec(ctx,
+		`DELETE FROM bus_vehicles WHERE vehicle_id = $1`, demoBusVehicleID); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM bus_routes WHERE source = 'demo-seed'`); err != nil {
+		return nil, err
+	}
 
 	// 2. 建筑 + 楼层
 	if _, err := tx.Exec(ctx, `
@@ -196,20 +210,20 @@ func Run(ctx context.Context, pool *pgxpool.Pool) (*Summary, error) {
 
 	// 3. 室内要素
 	features := []struct {
-		floor   int64
-		kind    string
-		cat     string
-		name    string
-		code    string
+		floor          int64
+		kind           string
+		cat            string
+		name           string
+		code           string
 		x1, y1, x2, y2 float64
 	}{}
 	addPoly := func(floor int64, kind, cat, name, code string, x1, y1, x2, y2 float64) {
 		features = append(features, struct {
-			floor   int64
-			kind    string
-			cat     string
-			name    string
-			code    string
+			floor          int64
+			kind           string
+			cat            string
+			name           string
+			code           string
 			x1, y1, x2, y2 float64
 		}{floor, kind, cat, name, code, x1, y1, x2, y2})
 	}
@@ -397,6 +411,73 @@ func Run(ctx context.Context, pool *pgxpool.Pool) (*Summary, error) {
 			}
 		}
 		s.FPSessions++
+	}
+
+	// 8. 校园公交演示环线：4 站（环线首末同站）+ 1 辆车 + 1 个新鲜位置。
+	//    位置是"每车取最新一条"的语义，所以只插一条就够 App 轮询 /bus/vehicles 看到车。
+	busStops := []struct {
+		name string
+		x, y float64
+	}{
+		{"东门站（演示）", 200, 60},
+		{"示范教学楼站（演示）", 78, 45},
+		{"图书馆站（演示）", 40, 90},
+		{"宿舍区站（演示）", 140, 120},
+	}
+	stopIDs := make([]int64, 0, len(busStops))
+	for _, st := range busStops {
+		lng, lat := cs.ToWGS84(st.x, st.y)
+		var id int64
+		if err := tx.QueryRow(ctx, `
+			INSERT INTO bus_stops (name, description, geom, props, status, source)
+			VALUES ($1, '演示数据', ST_SetSRID(ST_MakePoint($2,$3),4326), '{"demo":true}'::jsonb, 'published', 'demo-seed')
+			RETURNING stop_id`, st.name, lng, lat).Scan(&id); err != nil {
+			return nil, fmt.Errorf("插入公交站 %s: %w", st.name, err)
+		}
+		stopIDs = append(stopIDs, id)
+		s.BusStopCount++
+	}
+
+	// 线路走向：绕四站一圈，末点回到起点（环线的正常写法）
+	loop := [][2]float64{{200, 60}, {160, 40}, {78, 45}, {40, 90}, {140, 120}, {200, 60}}
+	coords := make([]string, 0, len(loop))
+	for _, p := range loop {
+		lng, lat := cs.ToWGS84(p[0], p[1])
+		coords = append(coords, fmt.Sprintf("[%.7f,%.7f]", lng, lat))
+	}
+	routeGeoJSON := `{"type":"LineString","coordinates":[` + strings.Join(coords, ",") + `]}`
+
+	if err := tx.QueryRow(ctx, `
+		INSERT INTO bus_routes (code, name, description, color, is_loop, geom, props, status, source)
+		VALUES ($1, '校园环线（演示数据）',
+		        '演示环线：东门 → 教学楼 → 图书馆 → 宿舍区 → 东门',
+		        '#0b7285', TRUE, ST_Multi(feature_geom($2::text)),
+		        '{"service_hours":"07:30-21:30","headway_min":10}'::jsonb, 'published', 'demo-seed')
+		RETURNING route_id`, demoBusRouteCode, routeGeoJSON).Scan(&s.BusRouteID); err != nil {
+		return nil, fmt.Errorf("插入公交线路: %w", err)
+	}
+
+	// 站序：下标即 seq；环线首末同站——起点站作为终点再出现一次
+	for i, stopID := range append(append([]int64{}, stopIDs...), stopIDs[0]) {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO bus_route_stops (route_id, stop_id, seq) VALUES ($1,$2,$3)`,
+			s.BusRouteID, stopID, i); err != nil {
+			return nil, fmt.Errorf("插入站序 %d: %w", i, err)
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO bus_vehicles (vehicle_id, label, route_id, enabled, props)
+		VALUES ($1, '1号车（演示）', $2, TRUE, '{"demo":true}'::jsonb)`,
+		demoBusVehicleID, s.BusRouteID); err != nil {
+		return nil, fmt.Errorf("插入演示车辆: %w", err)
+	}
+	posLng, posLat := cs.ToWGS84(120, 80)
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO bus_positions (vehicle_id, route_id, geom, heading_deg, speed_kmh, source)
+		VALUES ($1, $2, ST_SetSRID(ST_MakePoint($3,$4),4326), 90, 12, 'demo-seed')`,
+		demoBusVehicleID, s.BusRouteID, posLng, posLat); err != nil {
+		return nil, fmt.Errorf("插入演示车辆位置: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

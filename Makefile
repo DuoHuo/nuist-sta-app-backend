@@ -1,4 +1,4 @@
-.PHONY: run test vet tidy fmt compose-up compose-down migrate-up migrate-down seed
+.PHONY: run test vet tidy fmt compose-up compose-down migrate-up migrate-down seed deploy deploy-status
 
 run:
 	go run ./cmd/server
@@ -29,3 +29,13 @@ migrate-down:
 
 seed:
 	go run ./cmd/seed
+
+# 线上服务器部署：手册见 .agents/skills/backend-deploy/SKILL.md
+# make deploy-status 体检 / make deploy 上传后重建 api
+DEPLOY := python ../.agents/skills/backend-deploy/scripts/deploy.py
+
+deploy-status:
+	$(DEPLOY) status
+
+deploy:
+	$(DEPLOY) rebuild api

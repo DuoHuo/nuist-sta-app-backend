@@ -17,6 +17,7 @@ import (
 
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/config"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/httpx"
+	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/admintoken"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -27,7 +28,7 @@ var floorPartPattern = regexp.MustCompile(`^floor_(0|[1-9][0-9]*|-[1-9][0-9]*)$`
 type Handler struct {
 	repo       repository
 	storageDir string
-	token      string
+	write      gin.HandlerFunc
 }
 
 func Register(rg *gin.RouterGroup, cfg *config.Config, pool *pgxpool.Pool) {
@@ -35,23 +36,19 @@ func Register(rg *gin.RouterGroup, cfg *config.Config, pool *pgxpool.Pool) {
 	if dir == "" {
 		dir = "data/models"
 	}
-	h := &Handler{repo: &Repo{pool: pool}, storageDir: dir, token: cfg.Server.CollectToken}
+	h := &Handler{
+		repo:       &Repo{pool: pool},
+		storageDir: dir,
+		write:      admintoken.FromSpec(cfg.Server.CollectToken).Middleware(),
+	}
 	h.register(rg)
 }
 
 func (h *Handler) register(rg *gin.RouterGroup) {
-	rg.POST("/admin/buildings/:buildingId/model", h.requireToken, h.upload)
+	rg.POST("/admin/buildings/:buildingId/model", h.write, h.upload)
 	rg.GET("/buildings/:buildingId/model", h.active)
 	rg.GET("/buildings/:buildingId/model/versions/:version/files/:asset", h.download)
 	rg.HEAD("/buildings/:buildingId/model/versions/:version/files/:asset", h.download)
-}
-
-func (h *Handler) requireToken(c *gin.Context) {
-	if h.token != "" && c.GetHeader("X-Collect-Token") != h.token {
-		httpx.Err(c, http.StatusUnauthorized, "unauthorized", "缺少或错误的 X-Collect-Token")
-		return
-	}
-	c.Next()
 }
 
 func (h *Handler) active(c *gin.Context) {

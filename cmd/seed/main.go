@@ -1,4 +1,4 @@
-// 写入演示数据（幂等）：一栋示范教学楼 + 室内外路网 + 指纹样本。
+// 写入演示数据（幂等）：一栋示范教学楼 + 室内外路网 + 指纹样本 + 一条公交环线。
 package main
 
 import (
@@ -35,6 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("写入演示数据失败: %v", err)
 	}
-	log.Printf("完成: 建筑=%s 楼层=%v 节点=%d 边=%d POI=%d 指纹会话=%d",
-		s.BuildingID, s.FloorIDs, s.NodeCount, s.EdgeCount, s.POICount, s.FPSessions)
+	log.Printf("完成: 建筑=%s 楼层=%v 节点=%d 边=%d POI=%d 指纹会话=%d 公交线路=%d 公交站=%d",
+		s.BuildingID, s.FloorIDs, s.NodeCount, s.EdgeCount, s.POICount, s.FPSessions,
+		s.BusRouteID, s.BusStopCount)
 }

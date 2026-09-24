@@ -167,6 +167,35 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
 /* ---------- 分页 ---------- */
 .pager { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 10px 2px 0; font-size: 12.5px; color: var(--muted-fg); }
 
+/* ---------- 公交：线色圆点 / 站序编辑 ---------- */
+.swatch-dot {
+  display: inline-block; width: 11px; height: 11px; border-radius: 50%;
+  margin-right: 5px; vertical-align: middle; border: 1px solid rgba(0, 0, 0, .18);
+}
+.row-inline { display: flex; gap: 8px; align-items: center; }
+.row-inline select { flex: 1; min-width: 0; }
+.section-title .hint { font-weight: 400; font-size: 12px; color: var(--muted-fg); }
+.order-list { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.order-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px 3px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); font-size: 13px;
+}
+.order-row .seq { font-family: var(--mono); font-size: 12px; color: var(--muted-fg); min-width: 18px; }
+.order-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-row .icon-btn { width: 26px; height: 26px; font-size: 13px; line-height: 1; }
+.order-row .icon-btn[disabled] { opacity: .35; cursor: not-allowed; }
+.order-empty { margin: 4px 0 0; font-size: 12.5px; color: var(--muted-fg); }
+.field input[type=color] {
+  width: 44px; height: 34px; padding: 2px; flex: none;
+  border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card);
+}
+.field textarea {
+  width: 100%; padding: 7px 10px; font-family: var(--font); font-size: 13px;
+  border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card); resize: vertical;
+}
+.field textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(30, 64, 175, .12); }
+
 /* ---------- 弹窗 ---------- */
 .dlg { border: none; border-radius: 10px; padding: 0; width: min(480px, calc(100vw - 32px)); box-shadow: 0 10px 40px rgba(15, 36, 97, .22); }
 .dlg::backdrop { background: rgba(15, 36, 97, .35); }
@@ -222,6 +251,8 @@ td.num, th.num { text-align: right; font-family: var(--mono); }
 }
 .map-panel h3 { margin: 0 0 8px; font-size: 13px; color: var(--fg-strong); }
 .map-add-row { margin: 10px 0 0; border-top: 1px solid var(--border); padding-top: 10px; }
+.map-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.map-add-grid .btn { width: 100%; }
 .map-add-hint {
   margin-top: 8px; padding: 6px 10px; border-radius: 6px;
   background: #FEF3C7; color: #92400E; font-size: 12px;

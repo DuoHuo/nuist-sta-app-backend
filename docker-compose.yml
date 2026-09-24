@@ -44,6 +44,11 @@ services:
     # 发布 /data 下全部 mbtiles + 样式文件（1.x 配置格式多变，不走 config）。
     # 样式瓦片源用相对路径 ../../campus：martin 无论从哪个 host:端口被访问都自动指向自身。
     command: ["/data", "--style", "/etc/martin/campus.json"]
+    # 校园公交进底图（可选，默认不开）：加下面一行让马丁直接从 PostGIS 发布
+    # bus_routes / bus_stops（表见 migration 000005），再把 configs/style.bus-layers.json
+    # 的 sources+layers 合并进样式。细节见 docs/deploy.md 第 5 节。
+    # command: ["/data", "--style", "/etc/martin/campus.json",
+    #           "--postgres-connection-string", "postgres://campus:密码@db:5432/campus?sslmode=disable"]
     volumes:
       - ./configs/style.osm-bright.json:/etc/martin/campus.json:ro
       - ./data/tiles:/data:ro

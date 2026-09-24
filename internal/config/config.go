@@ -38,10 +38,13 @@ type Database struct {
 }
 
 type Map struct {
-	TileURL     string     `yaml:"tile_url"`
-	StyleURL    string     `yaml:"style_url"`
-	GlyphsURL   string     `yaml:"glyphs_url"`
-	SpritesURL  string     `yaml:"sprites_url"`
+	TileURL    string `yaml:"tile_url"`
+	StyleURL   string `yaml:"style_url"`
+	GlyphsURL  string `yaml:"glyphs_url"`
+	SpritesURL string `yaml:"sprites_url"`
+	// 自托管字形的存放目录（{fontstack}/{range}.pbf），由 GET /glyphs/* 静态下发。
+	// 样式里的 glyphs 指向本服务即可不再依赖外网字体服务。
+	GlyphsDir   string     `yaml:"glyphs_dir"`
 	Attribution string     `yaml:"attribution"`
 	Bounds      [4]float64 `yaml:"bounds"` // [minLon, minLat, maxLon, maxLat]
 }
@@ -68,6 +71,7 @@ func Default() *Config {
 		Map: Map{
 			TileURL:     "http://localhost:3000/campus/{z}/{x}/{y}",
 			StyleURL:    "",
+			GlyphsDir:   "data/glyphs",
 			Attribution: "© OpenStreetMap contributors",
 			// 南信大主校区实测 bbox（OSM relation/13070911 外环，见 data/osm/README.md）
 			Bounds: [4]float64{118.6910, 32.1956, 118.7229, 32.2099},
@@ -118,4 +122,5 @@ func applyEnv(cfg *Config) {
 	set("CAMPUS_MAP_TILE_URL", func(v string) { cfg.Map.TileURL = v })
 	set("CAMPUS_MAP_STYLE_URL", func(v string) { cfg.Map.StyleURL = v })
 	set("CAMPUS_MAP_GLYPHS_URL", func(v string) { cfg.Map.GlyphsURL = v })
+	set("CAMPUS_MAP_GLYPHS_DIR", func(v string) { cfg.Map.GlyphsDir = v })
 }

@@ -2,10 +2,10 @@
   "schema_version": 1,
   "coordinate_system": "building-local-meters-y-up",
   "origin": {
-    "longitude": 118.712935,
-    "latitude": 32.2070539
+    "longitude": 118.71294883038847,
+    "latitude": 32.20703416673561
   },
-  "rotation_deg": -9.3,
+  "rotation_deg": -11.266947222244035,
   "building_id": "OSM-Way862952692",
   "name": "明德楼",
   "source": "mingde-plans-v1",

@@ -4,6 +4,10 @@
 # 约定：tilemaker 生成好的矢量瓦片放在 ./data/tiles/，
 # docker compose 挂载到容器 /data；样式 configs/style.demo.json 挂载后
 # 由 /styles/campus 下发（martin 会把样式里名为 campus 的源指向本服务瓦片）。
+#
+# 注意：线上 compose 里的 martin 实际是用 CLI 参数启动的
+# （`/data --style /etc/martin/campus.json`，见 docker-compose.yml），
+# 本文件是配置参考、不参与运行。改用本文件启动前先读 docs/deploy.md 第 5 节。
 
 tiles:
   paths:
@@ -16,14 +20,31 @@ styles:
       campus: campus
 
 # 规模扩大后，可以把业务空间数据改为 PostGIS 直发（省去导出步骤）：
-# postgres:
-#   connection_string: postgres://campus:campus@db:5432/campus?sslmode=disable
-#   auto_publish: true
-#   # 只发布指定表：
-#   tables:
-#     indoor_rooms:
-#       schema: public
-#       table: indoor_features
-#       geometry_column: geom
-#       srid: 4326
-#       bounds: [118.71, 32.199, 118.725, 32.213]
+postgres:
+  connection_string: postgres://campus:campus@db:5432/campus?sslmode=disable
+  # 只发布下面列出的表，不自动扫描全库（auto_publish 管的是"发现所有表"）。
+  auto_publish: false
+  tables:
+    # 校园公交（预留）：表结构已就绪（GEOMETRY + GiST 索引 + SRID 4326），
+    # 样式侧对应的图层定义见 configs/style.bus-layers.json，
+    # 图层名就是表名：bus_routes / bus_stops。
+    # draft 数据：直发原表无法过滤，需要只出 published 时先建视图再指向视图。
+    bus_routes:
+      schema: public
+      table: bus_routes
+      geometry_column: geom
+      srid: 4326
+      bounds: [118.688, 32.193, 118.726, 32.213]
+    bus_stops:
+      schema: public
+      table: bus_stops
+      geometry_column: geom
+      srid: 4326
+      bounds: [118.688, 32.193, 118.726, 32.213]
+    # 室内要素仍走 GeoJSON 接口（每次只加载当前楼层），不进瓦片：
+    # indoor_rooms:
+    #   schema: public
+    #   table: indoor_features
+    #   geometry_column: geom
+    #   srid: 4326
+    #   bounds: [118.71, 32.199, 118.725, 32.213]

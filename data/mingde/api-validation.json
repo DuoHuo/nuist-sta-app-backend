@@ -82,10 +82,10 @@
     },
     {
       "name": "outdoor_to_seventh",
-      "length_m": 156.9,
+      "length_m": 155.3,
       "floor_changes": 6,
       "steps": [
-        "进入明德楼（1F），步行 87 米",
+        "进入明德楼（1F），步行 85 米",
         "经楼梯从 1F 前往 2F",
         "经楼梯从 2F 前往 3F",
         "经楼梯从 3F 前往 4F",
