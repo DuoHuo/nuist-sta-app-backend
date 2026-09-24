@@ -47,12 +47,12 @@ type Floor struct {
 }
 
 type Entrance struct {
-	EntranceID   int64  `json:"entrance_id"`
-	Name         string `json:"name"`
-	IsAccessible bool   `json:"is_accessible"`
+	EntranceID   int64   `json:"entrance_id"`
+	Name         string  `json:"name"`
+	IsAccessible bool    `json:"is_accessible"`
 	Lng          float64 `json:"lng"`
 	Lat          float64 `json:"lat"`
-	NavNodeID    *int64 `json:"nav_node_id,omitempty"`
+	NavNodeID    *int64  `json:"nav_node_id,omitempty"`
 }
 
 const buildingColumns = `b.building_id, b.osm_id, b.name, b.aliases, b.height_m,
@@ -300,6 +300,73 @@ func (r *Repo) GetPOI(ctx context.Context, poiID int64) (*POI, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+// MapFeature 通用地物（建筑与 POI 之外的校园地物）。App 侧只读 published。
+type MapFeature struct {
+	FeatureID   int64           `json:"feature_id"`
+	Kind        string          `json:"kind"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	ShowName    bool            `json:"show_name"` // false = 地图上别标名称（绿地之类的面），列表/详情照旧
+	Props       json.RawMessage `json:"props,omitempty"`
+	Geometry    json.RawMessage `json:"geometry"`
+	CentroidLng float64         `json:"centroid_lng"`
+	CentroidLat float64         `json:"centroid_lat"`
+}
+
+const featureColumns = `f.feature_id, f.kind, f.name, f.description, f.show_name, f.props,
+	ST_AsGeoJSON(f.geom)::jsonb,
+	ST_X(ST_Centroid(f.geom)), ST_Y(ST_Centroid(f.geom))`
+
+func scanFeature(row pgx.Row) (*MapFeature, error) {
+	var f MapFeature
+	if err := row.Scan(&f.FeatureID, &f.Kind, &f.Name, &f.Description, &f.ShowName,
+		&f.Props, &f.Geometry, &f.CentroidLng, &f.CentroidLat); err != nil {
+		return nil, err
+	}
+	return &f, nil
+}
+
+// ListFeatures 通用地物列表：名称/说明按关键字匹配，可按类别过滤。
+// 只返回 published——draft 是管理台的半成品，不下发 App。
+func (r *Repo) ListFeatures(ctx context.Context, q, kind string, limit int) ([]MapFeature, error) {
+	if limit <= 0 || limit > 2000 {
+		limit = 500
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+featureColumns+`
+		FROM map_features f
+		WHERE f.status = 'published'
+		  AND ($1 = '' OR f.name ILIKE '%'||$1||'%' OR f.description ILIKE '%'||$1||'%')
+		  AND ($2 = '' OR f.kind = $2)
+		ORDER BY (f.name ILIKE $3) DESC, f.name
+		LIMIT $4`, q, kind, q+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []MapFeature{}
+	for rows.Next() {
+		f, err := scanFeature(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *f)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repo) GetFeature(ctx context.Context, featureID int64) (*MapFeature, error) {
+	f, err := scanFeature(r.pool.QueryRow(ctx, `
+		SELECT `+featureColumns+`
+		FROM map_features f
+		WHERE f.feature_id = $1 AND f.status = 'published'`, featureID))
+	if err == pgx.ErrNoRows {
+		return nil, httpx.NotFound("地物不存在")
+	}
+	return f, err
 }
 
 func kindsOrNil(kinds []string) []string {

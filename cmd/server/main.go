@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/config"
+	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/admintoken"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/database"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/seed"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/server"
@@ -35,6 +36,18 @@ func main() {
 	}
 	if *addrOverride != "" {
 		cfg.Server.Addr = *addrOverride
+	}
+
+	// 管理令牌的启动守卫：格式写错当场退出，没配置就明确告知写接口已关闭。
+	// 曾经的实现是"令牌为空就放行"，公网部署等于不设防。
+	adminTokens := admintoken.FromSpec(cfg.Server.CollectToken)
+	if err := adminTokens.Err(); err != nil {
+		log.Fatalf("管理令牌配置有误: %v", err)
+	}
+	if adminTokens.Configured() {
+		log.Printf("管理写接口已启用（%d 个令牌）", adminTokens.Count())
+	} else {
+		log.Printf("警告: 未配置 server.collect_token（CAMPUS_COLLECT_TOKEN），所有管理写接口将返回 503 并拒绝服务")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -61,8 +74,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("写入演示数据失败: %v", err)
 		}
-		log.Printf("演示数据就绪: 建筑=%s 节点=%d 边=%d POI=%d 指纹=%d",
-			s.BuildingID, s.NodeCount, s.EdgeCount, s.POICount, s.FPSessions)
+		log.Printf("演示数据就绪: 建筑=%s 节点=%d 边=%d POI=%d 指纹=%d 公交线路=%d 公交站=%d",
+			s.BuildingID, s.NodeCount, s.EdgeCount, s.POICount, s.FPSessions,
+			s.BusRouteID, s.BusStopCount)
 	}
 
 	srv := &http.Server{

@@ -26,9 +26,52 @@ python scripts/fetch_osm.py       # Overpass 下载（bbox 提取，镜像轮询
 python scripts/osm_to_geojson.py  # OSM XML → buildings/roads/pois/areas 四个 GeoJSON
 python scripts/import_osm.py --out data/osm/import.sql   # GeoJSON → SQL（幂等）
 psql "postgres://campus@127.0.0.1:5433/campus?sslmode=disable" -v ON_ERROR_STOP=1 -f data/osm/import.sql
+
+# 只补/重刷「通用地物」（不动建筑与路网，线上增量用这条）
+python scripts/import_osm.py --section features --out data/osm/import_features.sql
 ```
 
 两个脚本都只用 Python 标准库。提取 bbox 可用 `--bbox minLon,minLat,maxLon,maxLat` 覆盖。
+
+## 通用地物（建筑与道路以外的东西）
+
+`areas.geojson` 的非建筑面 + `pois.geojson` 里没被 POI 收走的点，导入 `map_features`
+表，App 走 `/api/v1/features` 点击查看。规则（改规则请改 `scripts/import_osm.py` 里
+的 `classify_area` / `classify_point` / `PUBLISH_MAX_M2`）：
+
+| OSM 标签 | kind | 无名时的默认名 |
+| ---- | ---- | ---- |
+| `leisure=pitch/track`、`sport=*` | `sports` | 篮球场 / 网球场 / 田径场 / 跑道…（< 2000 m² 的田径小面叫"田径设施"） |
+| `leisure=park`、`landuse=forest/grass`、`natural=wood` | `green` | 绿地（有名字的用 OSM 名字，如"龙王山"） |
+| `natural=water`、`water=*` | `water` | 水域 |
+| `amenity=parking`、`parking=*` | `parking` | 停车场 |
+| `amenity=school/university/research_institute` | `study` | 校园区域 |
+| `landuse=commercial/retail`、`shop=*` | `shop` | 商业区 |
+| `barrier=gate/lift_gate` | `gate` | 闸机 |
+| `tourism=artwork`、`historic=*` | `sculpture` | 景观小品 |
+| `amenity=bicycle_rental/toilets/...`、`highway=elevator` | `facility` | 共享单车点 / 公共卫生间 / 无障碍电梯… |
+| 其余用地（`landuse=residential/construction/…`） | `other` | 用地 |
+
+两条重要的边界：
+
+- **只发"点得着"的东西**：过街点（40 个）、信号灯、电线塔（38 个）、过细的街道家具
+  都不导入；**道路本身（`highway=*`）也不进通用地物**——底图瓦片里已有，用户明确只要
+  "建筑和道路以外"的部分。有名字的节点已经进了 `pois` 表（地点），不重复导入。
+- **超大面只进管理台**：面积 > 5 公顷（`PUBLISH_MAX_M2`）或中心点在校园 bbox 之外的面，
+  以 `status='draft'` 入库（如整个校园轮廓 136 公顷、龙王山 156 公顷、周边住宅区、
+  19 公顷的大水面）。App 只收 `published`，否则半透明色块会把地图铺满并挡住点击；
+  管理台能看到、能改、能按需发布（`props.draft_reason` 记了原因）。
+
+命名与溯源：无名字的按类别编号（"篮球场 1/2/3"），说明字段写 `OSM 自动导入 · <类别>（原始标签）`，
+`props` 里保留 `osm_id`、`osm_tags`、`area_m2`。导入是**重建式**的
+（`DELETE ... WHERE source='osm-import'` 再插），所以 `feature_id` 每次重导都会变——
+管理台手绘的地物 `source='admin'`，不受影响。
+
+**名称标注（`show_name`）**：绿地、水面、停车场这些面把名字画到地图上只会盖住地图，
+所以导入时按"名字从哪来"决定——**OSM 里本来就有名字的才标**（西苑篮球场、中苑老田径场、
+藕舫园、龙王山…共 17 条），**脚本生成的名字不标**（"篮球场 3""停车场 7"，共 87 条）。
+不标只是不画文字标签，列表、搜索、详情页照旧显示名称；管理台「地物管理」里每条都能
+单独开关（列表有「名称标注」列与筛选），App 侧读 `/features` 返回的 `show_name` 决定是否绘制标签。
 
 ## 重要教训与已知坑
 

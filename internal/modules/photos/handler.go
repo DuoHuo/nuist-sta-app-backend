@@ -15,6 +15,7 @@ import (
 
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/config"
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/httpx"
+	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/admintoken"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -42,7 +43,7 @@ var fieldNames = map[string]bool{"file": true, "caption": true, "source": true, 
 type Handler struct {
 	repo       repository
 	storageDir string
-	token      string
+	write      gin.HandlerFunc
 }
 
 // Register 挂载实拍图片模块：/api/v1 下的读写接口，以及 /photos 下的图片静态文件（不走 /api/v1）。
@@ -51,26 +52,21 @@ func Register(rg *gin.RouterGroup, engine *gin.Engine, cfg *config.Config, pool 
 	if dir == "" {
 		dir = "data/photos"
 	}
-	h := &Handler{repo: &Repo{pool: pool}, storageDir: dir, token: cfg.Server.CollectToken}
+	h := &Handler{
+		repo:       &Repo{pool: pool},
+		storageDir: dir,
+		write:      admintoken.FromSpec(cfg.Server.CollectToken).Middleware(),
+	}
 	h.register(rg, engine)
 }
 
 func (h *Handler) register(rg *gin.RouterGroup, engine *gin.Engine) {
 	rg.GET("/buildings/:buildingId/photos", h.list)
-	rg.POST("/admin/buildings/:buildingId/photos", h.requireToken, h.upload)
-	rg.DELETE("/admin/photos/:photoId", h.requireToken, h.remove)
+	rg.POST("/admin/buildings/:buildingId/photos", h.write, h.upload)
+	rg.DELETE("/admin/photos/:photoId", h.write, h.remove)
 	// 文件名是内容哈希：同一 URL 的内容永不改变。
 	engine.GET(StaticRoute, h.static)
 	engine.HEAD(StaticRoute, h.static)
-}
-
-// requireToken 与 models/admin 模块一致：配置了 collect_token 时写接口必须携带 X-Collect-Token。
-func (h *Handler) requireToken(c *gin.Context) {
-	if h.token != "" && c.GetHeader("X-Collect-Token") != h.token {
-		httpx.Err(c, http.StatusUnauthorized, "unauthorized", "缺少或错误的 X-Collect-Token")
-		return
-	}
-	c.Next()
 }
 
 func (h *Handler) list(c *gin.Context) {

@@ -1,0 +1,170 @@
+{
+  "_note": [
+    "校园公交图层：预留的底图样式片段。本文件不参与运行，也不被 martin 加载——",
+    "它是「把公交线路并进底图」时唯一需要合并的样式部分，与后端表结构一一对应，",
+    "避免将来有人凭印象重写一遍样式、对不上字段名。",
+    "",
+    "两种渲染路径（默认走第一条，见 docs/deploy.md 第 5 节）：",
+    "  A. App 自绘（默认，无需改底图）：GET /api/v1/bus/geometry 返回 FeatureCollection，",
+    "     线路 properties.layer='bus_route'、站点 'bus_stop'，字段与下面的 get 表达式一致。",
+    "  B. 底图直发（可选）：Martin 从 PostGIS 直接发布 bus_routes / bus_stops 两张表，",
+    "     此时下面的 sources + layers 合并进 configs/style.osm-bright.json 即可。",
+    "",
+    "合并方式（只取 sources 与 layers，_note 不参与）：",
+    "  python - <<'EOF'",
+    "  import json",
+    "  base = json.load(open('configs/style.osm-bright.json', encoding='utf-8'))",
+    "  frag = json.load(open('configs/style.bus-layers.json', encoding='utf-8'))",
+    "  base['sources'].update(frag['sources'])",
+    "  base['layers'].extend(frag['layers'])   # 公交层压在最上层；要压在道路之下就改成 insert",
+    "  json.dump(base, open('configs/style.osm-bright.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)",
+    "  EOF",
+    "  然后 docker compose restart martin（样式是挂载进去的）。",
+    "",
+    "源名与图层名的来历：Martin 发布 PostGIS 表时，源 ID 默认是表名（public 模式下不带 schema 前缀），",
+    "MVT 内的图层名就是表名。上线前用 curl http://127.0.0.1:3000/catalog 确认真实源 ID；",
+    "若带前缀（如 public.bus_routes），把下面的 url 改成 ../../public.bus_routes。",
+    "",
+    "字段来源：bus_routes.geom(MULTILINESTRING,4326) 与 color/is_loop/code；",
+    "bus_stops.geom(POINT,4326) 与 name。见 migrations/000005_campus_bus.up.sql。",
+    "draft 状态的线路/站点不应出现在瓦片里（Martin 直发无法过滤时需要建视图，或改用路径 A）。"
+  ],
+  "sources": {
+    "bus-routes": {
+      "type": "vector",
+      "url": "../../bus_routes"
+    },
+    "bus-stops": {
+      "type": "vector",
+      "url": "../../bus_stops"
+    }
+  },
+  "layers": [
+    {
+      "id": "bus-route-casing",
+      "type": "line",
+      "source": "bus-routes",
+      "source-layer": "bus_routes",
+      "minzoom": 11,
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#ffffff",
+        "line-opacity": 0.85,
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          11, 2.4,
+          14, 6.4,
+          18, 12
+        ]
+      }
+    },
+    {
+      "id": "bus-route-line",
+      "type": "line",
+      "source": "bus-routes",
+      "source-layer": "bus_routes",
+      "minzoom": 11,
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": [
+          "case",
+          ["==", ["get", "color"], ""],
+          "#0b7285",
+          ["get", "color"]
+        ],
+        "line-width": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          11, 1.2,
+          14, 3.4,
+          18, 7
+        ]
+      }
+    },
+    {
+      "id": "bus-route-label",
+      "type": "symbol",
+      "source": "bus-routes",
+      "source-layer": "bus_routes",
+      "minzoom": 13,
+      "layout": {
+        "symbol-placement": "line",
+        "symbol-spacing": 240,
+        "text-field": ["get", "code"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 10,
+        "text-padding": 20
+      },
+      "paint": {
+        "text-color": "#0b7285",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2
+      }
+    },
+    {
+      "id": "bus-stop-halo",
+      "type": "circle",
+      "source": "bus-stops",
+      "source-layer": "bus_stops",
+      "minzoom": 13,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          13, 4.5,
+          17, 8
+        ],
+        "circle-color": "#ffffff",
+        "circle-stroke-color": "#0b7285",
+        "circle-stroke-width": 1
+      }
+    },
+    {
+      "id": "bus-stop-dot",
+      "type": "circle",
+      "source": "bus-stops",
+      "source-layer": "bus_stops",
+      "minzoom": 13,
+      "paint": {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          13, 2.2,
+          17, 4
+        ],
+        "circle-color": "#0b7285"
+      }
+    },
+    {
+      "id": "bus-stop-label",
+      "type": "symbol",
+      "source": "bus-stops",
+      "source-layer": "bus_stops",
+      "minzoom": 15,
+      "layout": {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [0, 1.1],
+        "text-max-width": 7
+      },
+      "paint": {
+        "text-color": "#20303a",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.2
+      }
+    }
+  ]
+}

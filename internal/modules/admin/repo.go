@@ -1,5 +1,6 @@
-// Package admin 后台管理接口：数据统计、全量图层 GeoJSON、建筑/POI 元数据编辑。
-// 写接口复用 locate 模块的 X-Collect-Token 约定（配置为空则不校验，仅供内网联调）。
+// Package admin 后台管理接口：数据统计、全量图层 GeoJSON、建筑/POI/通用地物的编辑。
+// 写接口统一走 platform/admintoken：必须携带 X-Collect-Token，未配置令牌时拒绝写入，
+// 令牌可带提交人标签并记入 created_by。
 package admin
 
 import (
@@ -33,6 +34,11 @@ type Stats struct {
 	NavEdges          int64    `json:"nav_edges"`
 	NavEdgesClosed    int64    `json:"nav_edges_closed"`
 	Entrances         int64    `json:"entrances"`
+	MapFeatures       int64    `json:"map_features"`
+	BusRoutes         int64    `json:"bus_routes"`
+	BusStops          int64    `json:"bus_stops"`
+	BusVehicles       int64    `json:"bus_vehicles"`
+	BusPositionsToday int64    `json:"bus_positions_today"`
 	FPSessions        int64    `json:"fp_sessions"`
 	FPObservations    int64    `json:"fp_observations"`
 	DataExtent        []string `json:"data_extent"` // [minLon,minLat,maxLon,maxLat]，建筑与路网总范围
@@ -53,6 +59,12 @@ func (r *Repo) Stats(ctx context.Context) (*Stats, error) {
 			(SELECT count(*) FROM nav_edges),
 			(SELECT count(*) FROM nav_edges WHERE NOT is_open),
 			(SELECT count(*) FROM building_entrances),
+			(SELECT count(*) FROM map_features),
+			(SELECT count(*) FROM bus_routes),
+			(SELECT count(*) FROM bus_stops),
+			(SELECT count(*) FROM bus_vehicles),
+			-- 位置表是时序表，只报"今天的量"：全表 count 会随采集频率线性增长，没有信息量
+			(SELECT count(*) FROM bus_positions WHERE reported_at >= date_trunc('day', now())),
 			(SELECT count(*) FROM fp_sessions),
 			(SELECT count(*) FROM fp_observations),
 			(SELECT COALESCE(string_to_array(replace(replace(
@@ -62,8 +74,9 @@ func (r *Repo) Stats(ctx context.Context) (*Stats, error) {
 				UNION ALL SELECT geom FROM nav_nodes) allg)`).
 		Scan(&s.Buildings, &s.BuildingsNamed, &s.BuildingsHeight, &s.BuildingsIndoor,
 			&s.Floors, &s.IndoorFeatures, &s.POIs, &s.NavNodes, &s.NavEdges,
-			&s.NavEdgesClosed, &s.Entrances, &s.FPSessions, &s.FPObservations,
-			&s.DataExtent)
+			&s.NavEdgesClosed, &s.Entrances, &s.MapFeatures,
+			&s.BusRoutes, &s.BusStops, &s.BusVehicles, &s.BusPositionsToday,
+			&s.FPSessions, &s.FPObservations, &s.DataExtent)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +192,7 @@ type BuildingPatch struct {
 	Aliases      *[]string `json:"aliases"`
 	HeightM      *float64  `json:"height_m"`      // 传 null 表示清空高度
 	ClearHeight  bool      `json:"clear_height"`  // true 时 height_m 置空
-	HeightSource *string  `json:"height_source"`  // 空串表示清空
+	HeightSource *string   `json:"height_source"` // 空串表示清空
 	HasIndoorMap *bool     `json:"has_indoor_map"`
 }
 
@@ -227,10 +240,10 @@ func (r *Repo) UpdateBuilding(ctx context.Context, buildingID string, p Building
 
 // POIPatch 地点部分更新。
 type POIPatch struct {
-	Name         *string   `json:"name"`
-	Category     *string   `json:"category"`
-	ClearCategory bool     `json:"clear_category"` // true 时清空分类
-	Keywords     *[]string `json:"keywords"`
+	Name          *string   `json:"name"`
+	Category      *string   `json:"category"`
+	ClearCategory bool      `json:"clear_category"` // true 时清空分类
+	Keywords      *[]string `json:"keywords"`
 }
 
 func (r *Repo) UpdatePOI(ctx context.Context, poiID int64, p POIPatch) error {
@@ -241,7 +254,8 @@ func (r *Repo) UpdatePOI(ctx context.Context, poiID int64, p POIPatch) error {
 		UPDATE pois SET
 			name     = COALESCE($1, name),
 			category = CASE WHEN $2 THEN NULL ELSE COALESCE(NULLIF($3,''), category) END,
-			keywords = COALESCE($4, keywords)
+			keywords = COALESCE($4, keywords),
+			updated_at = now()
 		WHERE poi_id = $5`,
 		p.Name, p.ClearCategory, p.Category, p.Keywords, poiID)
 	if err != nil {
@@ -262,7 +276,7 @@ type POICreate struct {
 	Lat      float64  `json:"lat"`
 }
 
-func (r *Repo) CreatePOI(ctx context.Context, p POICreate) (int64, error) {
+func (r *Repo) CreatePOI(ctx context.Context, p POICreate, editor string) (int64, error) {
 	if strings.TrimSpace(p.Name) == "" {
 		return 0, httpx.Unprocessable("地点名称不能为空")
 	}
@@ -274,10 +288,10 @@ func (r *Repo) CreatePOI(ctx context.Context, p POICreate) (int64, error) {
 	}
 	var id int64
 	err := r.pool.QueryRow(ctx, `
-		INSERT INTO pois (name, category, keywords, location)
-		VALUES ($1, NULLIF($2,''), $3, ST_SetSRID(ST_MakePoint($4,$5),4326))
+		INSERT INTO pois (name, category, keywords, location, created_by, source)
+		VALUES ($1, NULLIF($2,''), $3, ST_SetSRID(ST_MakePoint($4,$5),4326), $6, 'admin')
 		RETURNING poi_id`,
-		p.Name, p.Category, p.Keywords, p.Lng, p.Lat).Scan(&id)
+		p.Name, p.Category, p.Keywords, p.Lng, p.Lat, editor).Scan(&id)
 	return id, err
 }
 

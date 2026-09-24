@@ -29,18 +29,42 @@ func Register(rg *gin.RouterGroup, cfg *config.Config, pool *pgxpool.Pool) {
 	rg.GET("/floors/:floorId/features", h.floorFeatures)
 	rg.GET("/pois", h.searchPOIs)
 	rg.GET("/pois/:poiId", h.getPOI)
+	rg.GET("/features", h.listFeatures)
+	rg.GET("/features/:featureId", h.getFeature)
 }
 
 // mapConfig 输出 App 初始化地图所需的资源地址（Martin 瓦片/样式/范围/署名）。
+// 业务图层（建筑/室内/通用地物/公交）都走 GeoJSON 接口，App 自绘；瓦片只管底图。
 func (h *Handler) mapConfig(c *gin.Context) {
 	httpx.OK(c, gin.H{
-		"tile_url":     h.cfg.Map.TileURL,
-		"style_url":    h.cfg.Map.StyleURL,
-		"glyphs_url":   h.cfg.Map.GlyphsURL,
-		"sprites_url":  h.cfg.Map.SpritesURL,
-		"bounds":       h.cfg.Map.Bounds,
-		"attribution":  h.cfg.Map.Attribution,
-		"data_sources": gin.H{"buildings": "geojson-api", "indoor": "geojson-api"},
+		"tile_url":    h.cfg.Map.TileURL,
+		"style_url":   h.cfg.Map.StyleURL,
+		"glyphs_url":  h.cfg.Map.GlyphsURL,
+		"sprites_url": h.cfg.Map.SpritesURL,
+		"bounds":      h.cfg.Map.Bounds,
+		"attribution": h.cfg.Map.Attribution,
+		"data_sources": gin.H{
+			"buildings": "geojson-api",
+			"indoor":    "geojson-api",
+			"features":  "geojson-api",
+			"bus":       "geojson-api",
+		},
+		// 校园公交：接口路径与底图图层名的唯一出处。App 只需读这里，不必硬编码。
+		// 站台既可走 /bus/stops（有站序语义），也可能同时是 /features 里的 bus_stop 地物。
+		"bus": gin.H{
+			"routes_url":   "/api/v1/bus/routes",
+			"stops_url":    "/api/v1/bus/stops",
+			"geometry_url": "/api/v1/bus/geometry",
+			"vehicles_url": "/api/v1/bus/vehicles",
+			"report_url":   "/api/v1/bus/positions",
+			"tile_layers":  gin.H{"routes": "bus_routes", "stops": "bus_stops"},
+			"realtime": gin.H{
+				"transport":            "poll",
+				"endpoint":             "/api/v1/bus/vehicles",
+				"suggested_interval_s": 15,
+				"max_age_s":            120,
+			},
+		},
 	})
 }
 
@@ -133,6 +157,33 @@ func (h *Handler) getPOI(c *gin.Context) {
 		return
 	}
 	httpx.OK(c, p)
+}
+
+// listFeatures 通用地物列表（含几何，App 直接用来自建图层渲染）。
+func (h *Handler) listFeatures(c *gin.Context) {
+	features, err := h.repo.ListFeatures(c.Request.Context(),
+		strings.TrimSpace(c.Query("q")),
+		strings.TrimSpace(c.Query("kind")),
+		intQueryDefault(c, "limit", 500))
+	if err != nil {
+		httpx.Respond(c, err)
+		return
+	}
+	httpx.OK(c, gin.H{"features": features, "count": len(features)})
+}
+
+func (h *Handler) getFeature(c *gin.Context) {
+	featureID, err := strconv.ParseInt(c.Param("featureId"), 10, 64)
+	if err != nil {
+		httpx.Err(c, http.StatusBadRequest, "bad_request", "featureId 应为数字")
+		return
+	}
+	f, err := h.repo.GetFeature(c.Request.Context(), featureID)
+	if err != nil {
+		httpx.Respond(c, err)
+		return
+	}
+	httpx.OK(c, f)
 }
 
 func parseBBox(s string) (*[4]float64, bool) {

@@ -200,6 +200,49 @@ App 端可直接内嵌该 JSON 并把 sources.campus.url 指向 `https://你的�
 需要中文地名标注时，需再部署字形（glyphs）资源并在样式中配置 glyphs 地址，
 Martin 自 0.13 起支持发布字体字形，详见 https://maplibre.org/martin/。
 
+### 5.1 校园公交图层（预留，默认不开）
+
+公交线路**默认走 App 自绘**：`GET /api/v1/bus/geometry` 一次返回线路（线）+ 站点（点）的
+FeatureCollection，新录入的线路立刻可见，不需要重切瓦片，与通用地物同一条路。
+数据来自 `bus_routes` / `bus_stops` 表（migration `000005_campus_bus`），
+接口清单见 README 的 API 一览。
+
+要把公交并进**底图瓦片**（省掉 App 每次拉 GeoJSON、且在底图这一层就能点击）时，
+走下面两步，都不需要重跑 tilemaker——Martin 直接从 PostGIS 发布这两张表：
+
+```bash
+# 1) compose 的 martin 服务加一个参数（docker-compose.yml 里有注释好的行）
+#    command: ["/data", "--style", "/etc/martin/campus.json",
+#              "--postgres-connection-string", "postgres://campus:密码@db:5432/campus?sslmode=disable"]
+docker compose up -d martin
+
+# 2) 确认源 ID 与图层名（Martin 的源 ID 默认是表名，MVT 内图层名也是表名）
+curl -s http://127.0.0.1:3000/catalog | head -40        # 应出现 bus_routes / bus_stops
+curl -s http://127.0.0.1:3000/bus_routes | head -20     # TileJSON
+
+# 3) 把预留的样式片段合并进底图样式，然后重启 martin 生效
+python - <<'EOF'
+import json
+base = json.load(open('configs/style.osm-bright.json', encoding='utf-8'))
+frag = json.load(open('configs/style.bus-layers.json', encoding='utf-8'))
+base['sources'].update(frag['sources'])
+base['layers'].extend(frag['layers'])
+json.dump(base, open('configs/style.osm-bright.json', 'w', encoding='utf-8'),
+          ensure_ascii=False, indent=2)
+EOF
+docker compose restart martin
+```
+
+`configs/style.bus-layers.json` 里的 6 个图层（线路描边/线/编号标注、站点光晕/圆点/站名）
+与表字段一一对应：线色取 `bus_routes.color`（留空退化为 `#0b7285`）、编号取 `code`、站名取 `name`。
+另有两点要注意：
+
+- **draft 过滤**：直发原表没法只出 `published`，瓦片里会出现草稿。需要过滤时先建视图
+  （`CREATE VIEW bus_routes_pub AS SELECT * FROM bus_routes WHERE status='published'`），
+  再让 martin 发布视图，并把样式里的 `source-layer` 改成视图名；
+- **实时位置不进底图**：车辆位置每秒都在变，轮询 App 的 `/api/v1/bus/vehicles`
+  （默认只下发 120 秒内有更新的车辆），不要做成瓦片。
+
 ## 6. 配置参考
 
 优先级：默认值 < YAML（`-config` 指定） < 环境变量。
@@ -234,14 +277,63 @@ CAMPUS_DATABASE_DSN='postgres://campus:密码@127.0.0.1:5432/campus?sslmode=disa
 
 # 查看指纹采集记录
 curl -s "http://127.0.0.1:8080/api/v1/fingerprints?building_id=B-DEMO-01"
+
+# 校园公交：车辆位置是时序表，只增不减，建议定期清理（App 只看最新一条）
+docker compose exec -T db psql -U campus campus -c \
+  "DELETE FROM bus_positions WHERE reported_at < now() - interval '7 days';"
+
+# 通用地物：只补/重刷 OSM 导入的那批（水面/绿地/运动场地/停车场/闸机…），不动建筑与路网
+python scripts/import_osm.py --section features --out /tmp/features.sql
+cat /tmp/features.sql | docker compose exec -T db psql -U campus -d campus -v ON_ERROR_STOP=1 -f -
+# 导入是重建式（先删 source='osm-import' 再插），管理台手绘的 source='admin' 不受影响；
+# 单事务执行，出错自动回滚。分类与"超大面只进管理台"的规则见 data/osm/README.md
+```
+
+公交数据的录入（写接口需 `X-Collect-Token`）：
+```bash
+BASE=http://127.0.0.1:8080/api/v1
+TOKEN='X-Collect-Token: 名字:令牌'
+
+# 1) 建两个站，记下 stop_id
+curl -s -X POST $BASE/admin/bus/stops -H "$TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"图书馆站","geometry":{"type":"Point","coordinates":[118.7175,32.2058]}}'
+
+# 2) 建线路（geometry 可后补；先建档也行）
+curl -s -X POST $BASE/admin/bus/routes -H "$TOKEN" -H 'Content-Type: application/json' \
+  -d '{"code":"1号线","name":"校园环线","color":"#0b7285","is_loop":true}'
+
+# 3) 排站序（seq 由服务端按下标生成；环线允许首末同站）
+curl -s -X PUT $BASE/admin/bus/routes/1/stops -H "$TOKEN" -H 'Content-Type: application/json' \
+  -d '{"stop_ids":[3,4,5,3]}'
+
+# 4) 注册车辆，然后车载设备/司机端就能上报位置
+curl -s -X POST $BASE/admin/bus/vehicles -H "$TOKEN" -H 'Content-Type: application/json' \
+  -d '{"vehicle_id":"BUS-01","label":"1号车","route_id":1}'
+curl -s -X POST $BASE/bus/positions -H "$TOKEN" -H 'Content-Type: application/json' \
+  -d '{"vehicle_id":"BUS-01","lng":118.7175,"lat":32.2058,"heading_deg":90,"speed_kmh":15}'
+
+# App 侧读：线路/站点/自绘集合/实时位置
+curl -s "$BASE/bus/routes"
+curl -s "$BASE/bus/stops?lng=118.7175&lat=32.2058&limit=5"   # 附近的站，带 distance_m
+curl -s "$BASE/bus/geometry"                                  # FeatureCollection
+curl -s "$BASE/bus/vehicles"
 ```
 
 正式数据入口：
 
-- 建筑轮廓 / 室内房间 / 路网：QGIS 配准后导入 PostGIS（表结构见 `migrations/000001_map_init.up.sql` 注释）；
+- **通用地物与建筑：走管理台 `http://<地址>/admin/` 提交**——地图上绘制点/面或建筑轮廓，
+  填名称与类别后入库（`map_features` 表），提交人由令牌标签记入 `created_by`；
+  改形状用「重画几何 / 重画轮廓」，不需要数据库权限；
+- 管理台提交的地物由 App 自绘图层渲染（`/api/v1/features`），**不依赖底图瓦片**；
+  底图瓦片仍是 OSM 派生产物，重跑 tilemaker 后新地物才会并入瓦片（非必需）；
+- 批量导入仍可用 QGIS 配准后导入 PostGIS（表结构见 `migrations/000001_map_init.up.sql` 注释）；
 - 楼层约定：`level_index` 内部序号（地面=0）、`display_name` 显示名（1F/B1）、`elevation_m` 海拔三者独立；
 - 跨层必须走 `nav_edges.floor_change=true` 的楼梯/电梯边，不得凭二维坐标相同跨层；
 - 指纹采集：App 采集端调用 `POST /api/v1/fingerprints`（见 README API 表）。
+
+> **写接口需要令牌**：`CAMPUS_COLLECT_TOKEN` 未配置时，所有管理写接口返回 503（fail-closed）。
+> 配成 `名字:令牌` 可把提交人记入 `created_by`；管理台左下角填**令牌部分**。
+> 部署后写不了数据时，先检查 compose 的 api 服务里有没有这个环境变量。
 
 ## 8. 反向代理与 HTTPS（建议）
 

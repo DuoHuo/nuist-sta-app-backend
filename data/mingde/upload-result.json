@@ -1,53 +1,53 @@
 {
-  "base_url": "http://127.0.0.1:8081",
+  "base_url": "http://202.195.237.186:12345",
   "building_id": "OSM-Way862952692",
-  "version": "bbddac73190467f218762be6bb4753cb",
+  "version": "dc536ea50c5b3474d98c0271d2546986",
   "verified_files": [
     {
       "file": "mingde.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/building.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/building.glb",
       "sha256": "9d90046745473519c8605bb14eb4551503e0aa698e29ed1ea8602ffa2f122a3d",
       "bytes": 311924
     },
     {
       "file": "mingde-1F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_0.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_0.glb",
       "sha256": "2dbd85a4c6227c6fe96a0b755c436ca2baa47de632260f4fb905d2afa79bbc16",
       "bytes": 114252
     },
     {
       "file": "mingde-2F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_1.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_1.glb",
       "sha256": "e93904cf7f743ec1be326f9735029b21c3d3a318702f56b088785691e9d80f42",
       "bytes": 111492
     },
     {
       "file": "mingde-3F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_2.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_2.glb",
       "sha256": "273b7eae423ed3eb816b2783cfc5eb9e86dfd8c77fae2d63f4f3e46207960165",
       "bytes": 111468
     },
     {
       "file": "mingde-4F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_3.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_3.glb",
       "sha256": "6d1a67775f9eb6203af4921ef2ab8a2bdf57d3cec35b0af60624b5923ef53511",
       "bytes": 111468
     },
     {
       "file": "mingde-5F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_4.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_4.glb",
       "sha256": "877331872af7e8e09dee42ca626c1deee38de1dec5f7d3846daf66619893a8e3",
       "bytes": 111468
     },
     {
       "file": "mingde-6F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_5.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_5.glb",
       "sha256": "2dce4044e417790d3760464b13b93cb3135b3c57b0dfd3838ab89edd004417d8",
       "bytes": 110796
     },
     {
       "file": "mingde-7F.glb",
-      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/bbddac73190467f218762be6bb4753cb/files/floor_6.glb",
+      "url": "/api/v1/buildings/OSM-Way862952692/model/versions/dc536ea50c5b3474d98c0271d2546986/files/floor_6.glb",
       "sha256": "367f5f08aeb96d20377d3f42c6725b01b8071c16a9531dede37e6e7b0293b786",
       "bytes": 39148
     }

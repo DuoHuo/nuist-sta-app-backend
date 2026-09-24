@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/DuoHuo/nuist-sta-app-backend/internal/httpx"
+	"github.com/DuoHuo/nuist-sta-app-backend/internal/platform/admintoken"
 	"github.com/gin-gonic/gin"
 )
 
@@ -72,7 +73,7 @@ func newTestHandler(t *testing.T) (*gin.Engine, *memoryRepo, string) {
 	r := gin.New()
 	repo := &memoryRepo{versions: map[string]*Model{}, assets: map[string][]storedFile{}}
 	dir := t.TempDir()
-	h := &Handler{repo: repo, storageDir: dir, token: "secret"}
+	h := &Handler{repo: repo, storageDir: dir, write: admintoken.FromSpec("secret").Middleware()}
 	h.register(r.Group("/api/v1"))
 	return r, repo, dir
 }
